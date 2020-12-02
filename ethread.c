@@ -1,21 +1,46 @@
+#include "ethread.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 
+int main(int argc, char* argv[]){
+    int userInput;
+    int argIndex = 2;
+    int unitRow = 0;
+    int nSz = atoi(argv[1]);
+    int area = nSz * nSz;
 
-typedef struct matrix{
-    int area; //n x n size
-    int nSize; //row size
-    int* m; //matrix a
-    int* e;  //u vector matrix
-    int product; 
-    // EigenVector* result; 
-}Matrix;
+    //pointers to rows
+    Data* args = (Data*)malloc(sizeof(Data) * nSz);
 
+    setupRows(args, area, nSz);
 
-typedef struct data{
-    Matrix* data; 
-}Data;
+    for(int row = 0; row < args->data->nSize; row++){
+        for(int col = 0; col < args->data->nSize; col++){
+            (args + row)->data->m[col] = atoi(argv[argIndex]);
+            argIndex += 1;
+        }
+    }
+    while(scanf("%d", &userInput) == 1){
+        for(int i = 0; i < args->data->nSize; i++){
+            //FIX THIS: There are repeats that can better processing time
+            (args + i)->data->e[unitRow] = userInput;
+        }
+        unitRow += 1;
+    }
+
+    pthread_t t[nSz];  
+
+    for(int i = 0; i < nSz; i++){
+        pthread_create(&t[i], NULL, (void* (*) (void*))calculateEigenVector, (void*)(args + i));
+    }
+    for(int i = 0; i < nSz; i++){
+        pthread_join(t[i], NULL);
+    }
+    printResults(args, nSz);
+    freeMatrices(args, nSz);
+    return 0;
+}
 
 //Setup product matrices
 void setupRows(Data* row, int area, int nSz){
@@ -51,49 +76,8 @@ void freeMatrices(Data* args, int nSz){
     free(args);
 }
 
-/*void printResults(Data* args, int nSz){
+void printResults(Data* args, int nSz){
     for(int i = 0; i < nSz; i++){
         printf("THREAD %d: %d\n", i ,(args + i)->data->product);
     }
-}*/
-
-
-int main(int argc, char* argv[]){
-    int userInput;
-    int argIndex = 2;
-    int unitRow = 0;
-    int nSz = atoi(argv[1]);
-    int area = nSz * nSz;
-
-    //pointers to rows
-    Data* args = (Data*)malloc(sizeof(Data) * nSz);
-
-    setupRows(args, area, nSz);
-
-    for(int row = 0; row < args->data->nSize; row++){
-        for(int col = 0; col < args->data->nSize; col++){
-            (args + row)->data->m[col] = atoi(argv[argIndex]);
-           // printf("ROW %d: %d\n", row, (args + row)->data->m[col]);
-            argIndex += 1;
-        }
-    }
-    while(scanf("%d", &userInput) == 1){
-        for(int i = 0; i < args->data->nSize; i++){
-            //FIX THIS: There are repeats that can better processing time
-            (args + i)->data->e[unitRow] = userInput;
-        }
-        unitRow += 1;
-    }
-
-    pthread_t t[nSz];  
-
-    for(int i = 0; i < nSz; i++){
-        pthread_create(&t[i], NULL, (void* (*) (void*))calculateEigenVector, (void*)(args + i));
-    }
-    for(int i = 0; i < nSz; i++){
-        pthread_join(t[i], NULL);
-    }
-   /* printResults(args, nSz);*/
-    freeMatrices(args, nSz);
-    return 0;
 }
